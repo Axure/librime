@@ -44,10 +44,18 @@ public:
     fclose(fp);
   }
 
-  template<typename DICT>
+  template <typename DICT>
   static bool TryLoadFromFile(const string& fileName,
                               std::shared_ptr<DICT>* dict) {
-    FILE* fp = fopen(fileName.c_str(), "rb");
+      FILE* fp =
+#ifdef _MSC_VER
+          // well, the 'GetPlatformString' shall return a 'wstring'
+          _wfopen(UTF8Util::GetPlatformString(fileName).c_str(), L"rb")
+#else
+          fopen(UTF8Util::GetPlatformString(fileName).c_str(), "rb")
+#endif // _MSC_VER
+          ;
+
     if (fp == NULL) {
       return false;
     }
@@ -57,7 +65,7 @@ public:
     return true;
   }
 
-  template<typename DICT>
+  template <typename DICT>
   static std::shared_ptr<DICT> NewFromFile(const string& fileName) {
     std::shared_ptr<DICT> dict;
     if (!TryLoadFromFile<DICT>(fileName, &dict)) {

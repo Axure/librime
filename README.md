@@ -6,7 +6,7 @@ rimes with your keystrokes.
 
 Project home
 ---
-[rime.github.io](http://rime.github.io)
+[rime.im](http://rime.im)
 
 License
 ---
@@ -62,6 +62,7 @@ Frontends
   - [Squirrel](https://github.com/rime/squirrel): frontend for Mac OS X
   - [Weasel](https://github.com/rime/weasel): frontend for Windows
   - [XIME](https://github.com/stackia/XIME): yet another Rime frontend for Mac OS X
+  - [trime](https://github.com/osfans/trime): frontend for Android
 
 Plugins
 ===
@@ -92,11 +93,13 @@ We are grateful to the makers of the following open source libraries:
 Contributors
 ===
   - [佛振](https://github.com/lotem)
-  - [鄒旭](https://githbu.com/zouivex)
+  - [鄒旭](https://github.com/zouxu09)
   - [Weng Xuetian](http://csslayer.info)
   - [Chongyu Zhu](http://lembacon.com)
   - [Zhiwei Liu](https://github.com/liuzhiwei)
   - [BYVoid](http://www.byvoid.com)
   - [雪齋](https://github.com/LEOYoon-Tsaw)
   - [瑾昀](https://github.com/kunki)
-
+  - [osfans](https://github.com/osfans)
+  - [jakwings](https://github.com/jakwings)
+  - [Prcuvu](https://github.com/Prcuvu)

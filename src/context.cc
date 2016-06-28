@@ -22,33 +22,24 @@ bool Context::Commit() {
   return true;
 }
 
-std::string Context::GetCommitText() const {
+string Context::GetCommitText() const {
   if (get_option("dumb"))
-    return std::string();
+    return string();
   return composition_.GetCommitText();
 }
 
-std::string Context::GetScriptText() const {
+string Context::GetScriptText() const {
   return composition_.GetScriptText();
 }
 
+static const string kCaretSymbol("\xe2\x80\xb8");
+
+string Context::GetSoftCursor() const {
+  return get_option("soft_cursor") ? kCaretSymbol : string();
+}
+
 Preedit Context::GetPreedit() const {
-  auto preedit = composition_.GetPreedit();
-  preedit.caret_pos = preedit.text.length();
-  if (IsComposing()) {
-    if (get_option("soft_cursor")) {
-      const std::string caret("\xe2\x80\xb8");
-      preedit.text += caret;
-    }
-    auto prompt = composition_.GetPrompt();
-    if (!prompt.empty()) {
-      preedit.text += prompt;
-    }
-    if (caret_pos_ < input_.length()) {
-      preedit.text += input_.substr(caret_pos_);
-    }
-  }
-  return preedit;
+  return composition_.GetPreedit(input_, caret_pos_, GetSoftCursor());
 }
 
 bool Context::IsComposing() const {
@@ -62,7 +53,7 @@ bool Context::HasMenu() const {
   return menu && !menu->empty();
 }
 
-shared_ptr<Candidate> Context::GetSelectedCandidate() const {
+an<Candidate> Context::GetSelectedCandidate() const {
   if (composition_.empty())
     return nullptr;
   return composition_.back().GetSelectedCandidate();
@@ -81,7 +72,7 @@ bool Context::PushInput(char ch) {
   return true;
 }
 
-bool Context::PushInput(const std::string& str) {
+bool Context::PushInput(const string& str) {
   if (caret_pos_ >= input_.length()) {
     input_ += str;
     caret_pos_ = input_.length();
@@ -250,18 +241,18 @@ void Context::set_composition(Composition&& comp) {
   composition_ = std::move(comp);
 }
 
-void Context::set_input(const std::string& value) {
+void Context::set_input(const string& value) {
   input_ = value;
   caret_pos_ = input_.length();
   update_notifier_(this);
 }
 
-void Context::set_option(const std::string& name, bool value) {
+void Context::set_option(const string& name, bool value) {
   options_[name] = value;
   option_update_notifier_(this, name);
 }
 
-bool Context::get_option(const std::string& name) const {
+bool Context::get_option(const string& name) const {
   auto it = options_.find(name);
   if (it != options_.end())
     return it->second;
@@ -269,17 +260,17 @@ bool Context::get_option(const std::string& name) const {
     return false;
 }
 
-void Context::set_property(const std::string& name,
-                           const std::string& value) {
+void Context::set_property(const string& name,
+                           const string& value) {
   properties_[name] = value;
 }
 
-std::string Context::get_property(const std::string& name) const {
+string Context::get_property(const string& name) const {
   auto it = properties_.find(name);
   if (it != properties_.end())
     return it->second;
   else
-    return std::string();
+    return string();
 }
 
 void Context::ClearTransientOptions() {

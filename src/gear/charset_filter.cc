@@ -12,6 +12,7 @@
 #include <rime/engine.h>
 #include <rime/dict/vocabulary.h>
 #include <rime/gear/charset_filter.h>
+#include <boost/locale/encoding.hpp>
 
 namespace rime {
 
@@ -28,7 +29,7 @@ bool is_extended_cjk(uint32_t ch)
   return false;
 }
 
-bool contains_extended_cjk(const std::string& text)
+bool contains_extended_cjk(const string& text)
 {
   const char *p = text.c_str();
   uint32_t ch;
@@ -45,8 +46,8 @@ bool contains_extended_cjk(const std::string& text)
 // CharsetFilterTranslation
 
 CharsetFilterTranslation::CharsetFilterTranslation(
-    shared_ptr<Translation> translation)
-    : translation_(translation) {
+    an<Translation> translation, const string& charset)
+    : translation_(translation), charset_(charset) {
   LocateNextCandidate();
 }
 
@@ -60,14 +61,14 @@ bool CharsetFilterTranslation::Next() {
   return LocateNextCandidate();
 }
 
-shared_ptr<Candidate> CharsetFilterTranslation::Peek() {
+an<Candidate> CharsetFilterTranslation::Peek() {
   return translation_->Peek();
 }
 
 bool CharsetFilterTranslation::LocateNextCandidate() {
   while (!translation_->exhausted()) {
     auto cand = translation_->Peek();
-    if (cand && CharsetFilter::FilterText(cand->text()))
+    if (cand && CharsetFilter::FilterText(cand->text(), charset_))
       return true;
     translation_->Next();
   }
@@ -77,11 +78,20 @@ bool CharsetFilterTranslation::LocateNextCandidate() {
 
 // CharsetFilter
 
-bool CharsetFilter::FilterText(const std::string& text) {
-  return !contains_extended_cjk(text);
+bool CharsetFilter::FilterText(const string& text, const string& charset) {
+  if (charset.empty()) return !contains_extended_cjk(text);
+  try {
+    boost::locale::conv::from_utf(text, charset, boost::locale::conv::method_type::stop);
+  }
+  catch(boost::locale::conv::conversion_error const&  ex) {
+    return false;
+  }
+  catch(...) {
+  }
+  return true;
 }
 
-bool CharsetFilter::FilterDictEntry(shared_ptr<DictEntry> entry) {
+bool CharsetFilter::FilterDictEntry(an<DictEntry> entry) {
   return entry && FilterText(entry->text);
 }
 
@@ -89,12 +99,15 @@ CharsetFilter::CharsetFilter(const Ticket& ticket)
     : Filter(ticket), TagMatching(ticket) {
 }
 
-shared_ptr<Translation> CharsetFilter::Apply(
-    shared_ptr<Translation> translation, CandidateList* candidates) {
-  if (engine_->context()->get_option("extended_charset")) {
-    return translation;
+an<Translation> CharsetFilter::Apply(
+    an<Translation> translation, CandidateList* candidates) {
+  if (name_space_.empty() && !engine_->context()->get_option("extended_charset")) {
+    return New<CharsetFilterTranslation>(translation);
   }
-  return New<CharsetFilterTranslation>(translation);
+  if (!name_space_.empty() && engine_->context()->get_option(name_space_)) {
+    return New<CharsetFilterTranslation>(translation, name_space_);
+  }
+  return translation;
 }
 
 }  // namespace rime

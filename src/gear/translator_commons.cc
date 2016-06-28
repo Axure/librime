@@ -4,6 +4,7 @@
 //
 // 2012-04-22 GONG Chen <chen.sst@gmail.com>
 //
+#include <algorithm>
 #include <boost/range/adaptor/reversed.hpp>
 #include <rime/config.h>
 #include <rime/schema.h>
@@ -14,7 +15,7 @@ namespace rime {
 
 // Patterns
 
-bool Patterns::Load(ConfigListPtr patterns) {
+bool Patterns::Load(an<ConfigList> patterns) {
   clear();
   if (!patterns)
     return false;
@@ -80,6 +81,10 @@ size_t Spans::Count(size_t start_pos, size_t end_pos) const {
   return count;
 }
 
+bool Spans::HasVertex(size_t vertex) const {
+  return std::binary_search(vertices_.begin(), vertices_.end(), vertex);
+}
+
 // Sentence
 
 void Sentence::Extend(const DictEntry& entry, size_t end_pos) {
@@ -129,7 +134,7 @@ TranslatorOptions::TranslatorOptions(const Ticket& ticket) {
   }
 }
 
-bool TranslatorOptions::IsUserDictDisabledFor(const std::string& input) const {
+bool TranslatorOptions::IsUserDictDisabledFor(const string& input) const {
   if (user_dict_disabling_patterns_.empty())
     return false;
   for (const auto& pattern : user_dict_disabling_patterns_) {

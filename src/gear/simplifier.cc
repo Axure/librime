@@ -4,16 +4,8 @@
 //
 // 2011-12-12 GONG Chen <chen.sst@gmail.com>
 //
-#include <string>
-#include <vector>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
-#include <opencc/Config.hpp>
-#include <opencc/Converter.hpp>
-#include <opencc/Conversion.hpp>
-#include <opencc/ConversionChain.hpp>
-#include <opencc/Dict.hpp>
-#include <opencc/DictEntry.hpp>
 #include <stdint.h>
 #include <utf8.h>
 #include <rime/candidate.h>
@@ -25,6 +17,12 @@
 #include <rime/service.h>
 #include <rime/translation.h>
 #include <rime/gear/simplifier.h>
+#include <opencc/Config.hpp> // Place OpenCC #includes here to avoid VS2015 compilation errors
+#include <opencc/Converter.hpp>
+#include <opencc/Conversion.hpp>
+#include <opencc/ConversionChain.hpp>
+#include <opencc/Dict.hpp>
+#include <opencc/DictEntry.hpp>
 
 static const char* quote_left = "\xe3\x80\x94";  //"\xef\xbc\x88";
 static const char* quote_right = "\xe3\x80\x95";  //"\xef\xbc\x89";
@@ -33,17 +31,17 @@ namespace rime {
 
 class Opencc {
  public:
-  Opencc(const std::string& config_path) {
+  Opencc(const string& config_path) {
     LOG(INFO) << "initilizing opencc: " << config_path;
     opencc::Config config;
     converter_ = config.NewFromFile(config_path);
-    const std::list<opencc::ConversionPtr> conversions =
+    const list<opencc::ConversionPtr> conversions =
       converter_->GetConversionChain()->GetConversions();
     dict_ = conversions.front()->GetDict();
   }
 
-  bool ConvertSingleCharacter(const std::string& text,
-                              std::vector<std::string>* forms) {
+  bool ConvertWord(const string& text,
+                              vector<string>* forms) {
     opencc::Optional<const opencc::DictEntry*> item = dict_->Match(text);
     if (item.IsNull()) {
       // Match not found
@@ -57,8 +55,8 @@ class Opencc {
     }
   }
 
-  bool ConvertText(const std::string& text,
-                   std::string* simplified) {
+  bool ConvertText(const string& text,
+                   string* simplified) {
     *simplified = converter_->Convert(text);
     return true;
   }
@@ -76,7 +74,7 @@ Simplifier::Simplifier(const Ticket& ticket) : Filter(ticket),
     name_space_ = "simplifier";
   }
   if (Config* config = engine_->schema()->config()) {
-    std::string tips;
+    string tips;
     if (config->GetString(name_space_ + "/tips", &tips) ||
         config->GetString(name_space_ + "/tip", &tips)) {
       tips_level_ = (tips == "all") ? kTipsAll :
@@ -130,7 +128,7 @@ void Simplifier::Initialize() {
 
 class SimplifiedTranslation : public PrefetchTranslation {
  public:
-  SimplifiedTranslation(shared_ptr<Translation> translation,
+  SimplifiedTranslation(an<Translation> translation,
                         Simplifier* simplifier)
       : PrefetchTranslation(translation), simplifier_(simplifier) {
   }
@@ -151,7 +149,7 @@ bool SimplifiedTranslation::Replenish() {
   return !cache_.empty();
 }
 
-shared_ptr<Translation> Simplifier::Apply(shared_ptr<Translation> translation,
+an<Translation> Simplifier::Apply(an<Translation> translation,
                                           CandidateList* candidates) {
   if (!engine_->context()->get_option(option_name_)) {  // off
     return translation;
@@ -165,7 +163,7 @@ shared_ptr<Translation> Simplifier::Apply(shared_ptr<Translation> translation,
   return New<SimplifiedTranslation>(translation, this);
 }
 
-bool Simplifier::Convert(const shared_ptr<Candidate>& original,
+bool Simplifier::Convert(const an<Candidate>& original,
                          CandidateQueue* result) {
   if (excluded_types_.find(original->type()) != excluded_types_.end()) {
     return false;
@@ -174,18 +172,15 @@ bool Simplifier::Convert(const shared_ptr<Candidate>& original,
                                             original->text().c_str()
                                             + original->text().length());
   bool success;
-  if (length == 1) {
-    std::vector<std::string> forms;
-    success = opencc_->ConvertSingleCharacter(original->text(), &forms);
-    if (!success || forms.size() == 0) {
-      return false;
-    }
+  vector<string> forms;
+  success = opencc_->ConvertWord(original->text(), &forms);
+  if (success && forms.size() > 0) {
     for (size_t i = 0; i < forms.size(); ++i) {
       if (forms[i] == original->text()) {
         result->push_back(original);
       }
       else {
-        std::string tips;
+        string tips;
         if (tips_level_ >= kTipsChar) {
           tips = quote_left + original->text() + quote_right;
         }
@@ -197,13 +192,13 @@ bool Simplifier::Convert(const shared_ptr<Candidate>& original,
                 tips));
       }
     }
-  } else {
-    std::string simplified;
+  } else if (length > 1) {
+    string simplified;
     success = opencc_->ConvertText(original->text(), &simplified);
     if (!success || simplified == original->text()) {
       return false;
     }
-    std::string tips;
+    string tips;
     if (tips_level_ == kTipsAll) {
       tips = quote_left + original->text() + quote_right;
     }
@@ -213,6 +208,8 @@ bool Simplifier::Convert(const shared_ptr<Candidate>& original,
             "simplified",
             simplified,
             tips));
+  } else {
+    return false;
   }
   return true;
 }

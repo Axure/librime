@@ -38,28 +38,54 @@ ProcessResult Selector::ProcessKeyEvent(const KeyEvent& key_event) {
     return kAccepted;
   }
   if (ch == XK_Up || ch == XK_KP_Up) {
-    CursorUp(ctx);
+    if (ctx->get_option("_horizontal")) {
+      PageUp(ctx);
+    } else {
+      CursorUp(ctx);
+    }
     return kAccepted;
   }
   if (ch == XK_Down || ch == XK_KP_Down) {
-    CursorDown(ctx);
+    if (ctx->get_option("_horizontal")) {
+      PageDown(ctx);
+    } else {
+      CursorDown(ctx);
+    }
     return kAccepted;
   }
-  if (ch == XK_Home || ch == XK_KP_Home) {
-    if (Home(ctx))
+  if (ch == XK_Left || ch == XK_KP_Left) {
+    if (!key_event.ctrl() &&
+        !key_event.shift() &&
+        ctx->caret_pos() == ctx->input().length() &&
+        ctx->get_option("_horizontal") &&
+        CursorUp(ctx)) {
       return kAccepted;
+    }
+    return kNoop;
+  }
+  if (ch == XK_Right || ch == XK_KP_Right) {
+    if (!key_event.ctrl() &&
+        !key_event.shift() &&
+        ctx->caret_pos() == ctx->input().length() &&
+        ctx->get_option("_horizontal")) {
+      CursorDown(ctx);
+      return kAccepted;
+    }
+    return kNoop;
+  }
+  if (ch == XK_Home || ch == XK_KP_Home) {
+    return Home(ctx) ? kAccepted : kNoop;
   }
   if (ch == XK_End || ch == XK_KP_End) {
-    if (End(ctx))
-      return kAccepted;
+    return End(ctx) ? kAccepted : kNoop;
   }
   int index = -1;
-  const std::string& select_keys(engine_->schema()->select_keys());
+  const string& select_keys(engine_->schema()->select_keys());
   if (!select_keys.empty() &&
       !key_event.ctrl() &&
       ch >= 0x20 && ch < 0x7f) {
     size_t pos = select_keys.find((char)ch);
-    if (pos != std::string::npos) {
+    if (pos != string::npos) {
       index = static_cast<int>(pos);
     }
   }

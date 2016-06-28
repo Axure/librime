@@ -122,6 +122,7 @@ typedef struct rime_context_t {
   RimeMenu menu;
   // v0.9.2
   char* commit_text_preview;
+  char** select_labels;
 } RimeContext;
 
 /*!
@@ -140,6 +141,12 @@ typedef struct rime_status_t {
   Bool is_traditional;
   Bool is_ascii_punct;
 } RimeStatus;
+
+typedef struct rime_candidate_list_iterator_t {
+  void *ptr;
+  int index;
+  RimeCandidate candidate;
+} RimeCandidateListIterator;
 
 typedef struct rime_config_t {
   void* ptr;
@@ -250,6 +257,12 @@ RIME_API Bool RimeGetContext(RimeSessionId session_id, RimeContext* context);
 RIME_API Bool RimeFreeContext(RimeContext* context);
 RIME_API Bool RimeGetStatus(RimeSessionId session_id, RimeStatus* status);
 RIME_API Bool RimeFreeStatus(RimeStatus* status);
+
+// Accessing candidate list
+
+RIME_API Bool RimeCandidateListBegin(RimeSessionId session_id, RimeCandidateListIterator* iterator);
+RIME_API Bool RimeCandidateListNext(RimeCandidateListIterator* iterator);
+RIME_API void RimeCandidateListEnd(RimeCandidateListIterator* iterator);
 
 // Runtime options
 
@@ -483,11 +496,22 @@ typedef struct rime_api_t {
   //! caret posistion in terms of raw input
   size_t (*get_caret_pos)(RimeSessionId session_id);
 
-  //! select a candidate from current page
+  //! select a candidate at the given index in candidate list.
   Bool (*select_candidate)(RimeSessionId session_id, size_t index);
 
   //! get the version of librime
   const char* (*get_version)();
+
+  //! set caret posistion in terms of raw input
+  void (*set_caret_pos)(RimeSessionId session_id, size_t caret_pos);
+
+  //! select a candidate from current page.
+  Bool (*select_candidate_on_current_page)(RimeSessionId session_id, size_t index);
+
+  // access candidate list.
+  Bool (*candidate_list_begin)(RimeSessionId session_id, RimeCandidateListIterator* iterator);
+  Bool (*candidate_list_next)(RimeCandidateListIterator* iterator);
+  void (*candidate_list_end)(RimeCandidateListIterator* iterator);
 
 } RimeApi;
 
